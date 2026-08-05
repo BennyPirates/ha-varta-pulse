@@ -25,7 +25,7 @@ class RegisterDefinition:
     data_type: str
     unit: str | None = None
     device_class: str | None = None
-    state_class: str | None = "measurement"
+    state_class: str | None = None
     icon: str | None = None
 
 
