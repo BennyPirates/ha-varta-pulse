@@ -1,0 +1,39 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to VARTA pulse",
+        "description": "Reads VARTA's publicly documented Modbus registers locally. No Modbus write operation is implemented.",
+        "data": {"host": "Host", "port": "Port", "unit_id": "Unit ID"}
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to VARTA pulse",
+      "unknown": "Unexpected error"
+    },
+    "abort": {"already_configured": "This VARTA pulse is already configured"}
+  },
+  "entity": {
+    "sensor": {
+      "ems_firmware": {"name": "EMS firmware"},
+      "ens_firmware": {"name": "ENS firmware"},
+      "inverter_firmware": {"name": "Internal inverter firmware"},
+      "modbus_table_version": {"name": "Modbus table version"},
+      "serial_number": {"name": "Serial number"},
+      "installed_modules": {"name": "Installed battery modules"},
+      "state": {"name": "State"},
+      "battery_power": {"name": "Battery power"},
+      "apparent_battery_power": {"name": "Apparent battery power"},
+      "state_of_charge": {"name": "State of charge"},
+      "installed_capacity": {"name": "Installed capacity"},
+      "grid_power": {"name": "Grid power"},
+      "grid_frequency": {"name": "Grid frequency"},
+      "available_charging_power": {"name": "Available charging power"},
+      "available_discharging_power": {"name": "Available discharging power"},
+      "usable_energy_for_charging": {"name": "Usable energy for charging"},
+      "usable_energy_for_discharging": {"name": "Usable energy for discharging"},
+      "reactive_power": {"name": "Reactive power"},
+      "pv_sensor_power": {"name": "PV sensor power"}
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "config": {
+    "step": {"user": {"title": "Mit VARTA pulse verbinden", "description": "Liest die öffentlich dokumentierten VARTA-Modbus-Register lokal. Es ist keine Modbus-Schreiboperation implementiert.", "data": {"host": "Host", "port": "Port", "unit_id": "Unit-ID"}}},
+    "error": {"cannot_connect": "Verbindung zu VARTA pulse fehlgeschlagen", "unknown": "Unerwarteter Fehler"},
+    "abort": {"already_configured": "Diese VARTA pulse ist bereits eingerichtet"}
+  },
+  "entity": {"sensor": {"ems_firmware": {"name": "EMS-Firmware"}, "ens_firmware": {"name": "ENS-Firmware"}, "inverter_firmware": {"name": "Interne Wechselrichter-Firmware"}, "modbus_table_version": {"name": "Modbus-Tabellenversion"}, "serial_number": {"name": "Seriennummer"}, "installed_modules": {"name": "Installierte Batteriemodule"}, "state": {"name": "Status"}, "battery_power": {"name": "Batterieleistung"}, "apparent_battery_power": {"name": "Scheinleistung Batterie"}, "state_of_charge": {"name": "Ladezustand"}, "installed_capacity": {"name": "Installierte Kapazität"}, "grid_power": {"name": "Netzleistung"}, "grid_frequency": {"name": "Netzfrequenz"}, "available_charging_power": {"name": "Verfügbare Ladeleistung"}, "available_discharging_power": {"name": "Verfügbare Entladeleistung"}, "usable_energy_for_charging": {"name": "Nutzbare Energie zum Laden"}, "usable_energy_for_discharging": {"name": "Nutzbare Energie zum Entladen"}, "reactive_power": {"name": "Blindleistung"}, "pv_sensor_power": {"name": "PV-Sensorleistung"}}}
+}
