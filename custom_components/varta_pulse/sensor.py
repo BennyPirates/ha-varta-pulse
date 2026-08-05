@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfPower
 from homeassistant.core import HomeAssistant
@@ -26,7 +26,7 @@ async def async_setup_entry(
 class VartaPulseSensor(VartaPulseEntity, SensorEntity):
     """One VARTA pulse read-only sensor."""
 
-    entity_description: RegisterDefinition
+    entity_description: SensorEntityDescription
 
     def __init__(
         self,
@@ -35,34 +35,37 @@ class VartaPulseSensor(VartaPulseEntity, SensorEntity):
         register: RegisterDefinition,
     ) -> None:
         super().__init__(coordinator, entry)
-        self.entity_description = register
+        self._register = register
+        self.entity_description = SensorEntityDescription(
+            key=register.key,
+            translation_key=register.key,
+            native_unit_of_measurement=register.unit,
+            device_class=register.device_class,
+            state_class=register.state_class,
+            icon=register.icon,
+        )
         self._attr_unique_id = f"{entry.entry_id}_{register.key}"
-        self._attr_translation_key = register.key
-        self._attr_native_unit_of_measurement = register.unit
-        self._attr_device_class = register.device_class
-        self._attr_state_class = register.state_class
-        self._attr_icon = register.icon
         if register.key in {"battery_power", "grid_power"}:
             self._attr_suggested_unit_of_measurement = UnitOfPower.WATT
 
     @property
     def available(self) -> bool:
         """Only expose values that have passed conservative plausibility checks."""
-        item = self.coordinator.data.get(self.entity_description.key)
+        item = self.coordinator.data.get(self._register.key)
         return super().available and item is not None and item.plausible
 
     @property
     def native_value(self) -> int | float | str | None:
         """Return decoded public register value."""
-        item = self.coordinator.data.get(self.entity_description.key)
+        item = self.coordinator.data.get(self._register.key)
         return item.value if item and item.plausible else None
 
     @property
     def extra_state_attributes(self) -> dict[str, int | bool]:
         """Retain the raw read-only evidence for diagnostics."""
-        item = self.coordinator.data.get(self.entity_description.key)
+        item = self.coordinator.data.get(self._register.key)
         return {
-            "register": self.entity_description.address,
+            "register": self._register.address,
             "raw_value": item.raw_value if item else 0,
             "plausible": item.plausible if item else False,
             "modbus_function": 3,
