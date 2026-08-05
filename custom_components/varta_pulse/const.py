@@ -138,6 +138,15 @@ STATE_NAMES = {
     7: "Islanding",
 }
 
-# Consecutive documented blocks. A block is read in one FC03 request to avoid
-# needless traffic, with a hard ≥1.05 s gap between all requests.
-READ_BLOCKS: tuple[tuple[int, int], ...] = ((1000, 88), (1102, 1))
+# The pulse 6 returns its documented string fields and status reliably only
+# when they are queried as dedicated requests. The remaining numeric range can
+# be read as a block. Every request is nevertheless serialized with a hard
+# ≥1.05 s gap, so one complete refresh takes roughly six seconds.
+READ_BLOCKS: tuple[tuple[int, int], ...] = (
+    (1000, 17),
+    (1017, 17),
+    (1034, 17),
+    (1051, 37),
+    (1065, 1),
+    (1102, 1),
+)
