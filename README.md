@@ -15,6 +15,21 @@ energy storage systems via Modbus TCP.
 This integration is intentionally a monitoring integration. Battery dispatch,
 grid charging, reserve policies, and inverter control are **not** implemented.
 
+## Read-only diagnostic probe
+
+The repository also contains a standalone probe for troubleshooting the
+documented Modbus table without loading Home Assistant:
+
+```shell
+python varta_pulse_probe.py varta.local
+python varta_pulse_probe.py varta.local --candidate-scan
+```
+
+The probe uses only FC03 reads, keeps the documented Unit ID 255 default, and
+writes JSON/CSV results below the ignored `results/` directory. Candidate
+registers are reported as raw values only; the probe assigns them no semantic
+meaning or write capability.
+
 ## What it exposes
 
 - battery status and state of charge
