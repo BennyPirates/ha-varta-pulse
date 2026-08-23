@@ -28,7 +28,11 @@ def decode_string(values: list[int]) -> str:
 
 def register_width(data_type: str) -> int:
     """Return the number of 16-bit registers required by a data type."""
-    return 17 if data_type == "string17" else 10 if data_type == "string10" else 1
+    if data_type == "string17":
+        return 17
+    if data_type == "string10":
+        return 10
+    return 2 if data_type == "energy_counter" else 1
 
 
 def decode(register: RegisterDefinition, values: list[int]) -> VartaValue:
@@ -44,11 +48,21 @@ def decode(register: RegisterDefinition, values: list[int]) -> VartaValue:
         value = round(raw / 100, 2)
     elif register.data_type == "capacity_10wh":
         value = raw * 10
+    elif register.data_type == "energy_counter":
+        value = (values[1] << 16) | raw
     else:
         value = raw
     return VartaValue(
         value=value, raw_value=raw, plausible=is_plausible(register, value)
     )
+
+
+def apply_scale_factor(value: VartaValue, scale_factor: int) -> VartaValue:
+    """Apply VARTA's documented base-10 scale factor to a decoded value."""
+    if not -9 <= scale_factor <= 9 or not isinstance(value.value, int | float):
+        return VartaValue(value.value, value.raw_value, False)
+    scaled = value.value * (10**scale_factor)
+    return VartaValue(scaled, value.raw_value, value.plausible)
 
 
 def is_plausible(register: RegisterDefinition, value: int | float | str) -> bool:

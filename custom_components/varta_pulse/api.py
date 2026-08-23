@@ -9,8 +9,8 @@ from collections.abc import Callable
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 
-from .const import MIN_REQUEST_INTERVAL, READ_BLOCKS, REGISTERS
-from .registers import VartaValue, decode, register_width
+from .const import MIN_REQUEST_INTERVAL, READ_BLOCKS, REGISTERS, SCALE_FACTOR_BLOCK
+from .registers import VartaValue, apply_scale_factor, decode, register_width, signed16
 
 
 class VartaPulseError(Exception):
@@ -50,6 +50,15 @@ class VartaPulseClient:
             values = self._read_holding(start, count)
             raw.update(dict(zip(range(start, start + count), values, strict=True)))
 
+        try:
+            start, count = SCALE_FACTOR_BLOCK
+            values = self._read_holding(start, count)
+            raw.update(dict(zip(range(start, start + count), values, strict=True)))
+        except VartaPulseError:
+            # The documented factors are not implemented by older pulse models.
+            # Their implicit scale factor is zero.
+            pass
+
         decoded: dict[str, VartaValue] = {}
         for register in REGISTERS:
             values = [
@@ -57,6 +66,16 @@ class VartaPulseClient:
                 for index in range(register_width(register.data_type))
             ]
             decoded[register.key] = decode(register, values)
+            if register.scale_factor_address is not None:
+                scale_factor = signed16(raw.get(register.scale_factor_address, 0))
+                scaled = apply_scale_factor(decoded[register.key], scale_factor)
+                if register.data_type == "energy_counter" and scaled.plausible:
+                    scaled = VartaValue(
+                        round(float(scaled.value) / 1000, 6),
+                        scaled.raw_value,
+                        True,
+                    )
+                decoded[register.key] = scaled
         return decoded
 
     def _read_holding(self, address: int, count: int) -> list[int]:

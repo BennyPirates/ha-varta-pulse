@@ -47,6 +47,24 @@ class VartaRegisterTests(unittest.TestCase):
         self.assertEqual(value.value, 5860)
         self.assertEqual(value.raw_value, 586)
 
+    def test_energy_counter_uses_little_word_order(self) -> None:
+        value = registers.decode(
+            self.definition("total_charged_energy"), [0xCDEF, 0x0123]
+        )
+        self.assertEqual(value.value, 0x0123CDEF)
+
+    def test_scale_factor_is_applied(self) -> None:
+        value = registers.apply_scale_factor(
+            registers.decode(self.definition("battery_power"), [250]), -1
+        )
+        self.assertEqual(value.value, 25.0)
+
+    def test_invalid_scale_factor_marks_value_implausible(self) -> None:
+        value = registers.apply_scale_factor(
+            registers.decode(self.definition("battery_power"), [250]), 10
+        )
+        self.assertFalse(value.plausible)
+
     def test_state_of_charge_bounds(self) -> None:
         valid = registers.decode(self.definition("state_of_charge"), [59])
         invalid = registers.decode(self.definition("state_of_charge"), [101])

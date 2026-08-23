@@ -27,6 +27,7 @@ class RegisterDefinition:
     device_class: str | None = None
     state_class: str | None = None
     icon: str | None = None
+    scale_factor_address: int | None = None
 
 
 # All addresses are holding registers and are read using Modbus FC03 only.
@@ -55,6 +56,7 @@ REGISTERS: tuple[RegisterDefinition, ...] = (
         "W",
         "power",
         "measurement",
+        scale_factor_address=2066,
     ),
     RegisterDefinition(
         "apparent_battery_power",
@@ -64,6 +66,7 @@ REGISTERS: tuple[RegisterDefinition, ...] = (
         "VA",
         "apparent_power",
         "measurement",
+        scale_factor_address=2067,
     ),
     RegisterDefinition(
         "state_of_charge",
@@ -82,8 +85,28 @@ REGISTERS: tuple[RegisterDefinition, ...] = (
         "Wh",
         "energy_storage",
         "measurement",
+        scale_factor_address=2071,
     ),
-    RegisterDefinition("grid_power", 1078, "Grid power", "int", "W", "power"),
+    RegisterDefinition(
+        "total_charged_energy",
+        1069,
+        "Total charged energy",
+        "energy_counter",
+        "kWh",
+        "energy",
+        "total_increasing",
+        scale_factor_address=2069,
+    ),
+    RegisterDefinition(
+        "grid_power",
+        1078,
+        "Grid power",
+        "int",
+        "W",
+        "power",
+        "measurement",
+        scale_factor_address=2078,
+    ),
     RegisterDefinition(
         "grid_frequency", 1082, "Grid frequency", "centihertz", "Hz", "frequency"
     ),
@@ -139,14 +162,18 @@ STATE_NAMES = {
 }
 
 # The pulse 6 returns its documented string fields and status reliably only
-# when they are queried as dedicated requests. The remaining numeric range can
-# be read as a block. Every request is nevertheless serialized with a hard
-# ≥1.05 s gap, so one complete refresh takes roughly six seconds.
+# when they are queried as dedicated requests. The remaining numeric range and
+# scale-factor range can be read as blocks. Every request is nevertheless
+# serialized with a hard ≥1.05 s gap, so one complete refresh takes roughly
+# six seconds.
 READ_BLOCKS: tuple[tuple[int, int], ...] = (
     (1000, 17),
     (1017, 17),
     (1034, 17),
     (1051, 37),
-    (1065, 1),
     (1102, 1),
 )
+
+# These public registers apply to pulse neo and flex storage. Their absence on
+# older pulse models must not make otherwise supported monitoring unavailable.
+SCALE_FACTOR_BLOCK = (2066, 13)

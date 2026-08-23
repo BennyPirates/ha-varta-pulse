@@ -35,7 +35,14 @@ meaning or write capability.
 - battery status and state of charge
 - battery, grid, PV-sensor, apparent and reactive power
 - available charge/discharge power and usable energy
+- VARTA's cumulative AC-to-DC charged-energy counter, suitable for the
+  Energy dashboard
 - installed capacity, module count, firmware and Modbus table version
+
+For pulse neo systems, the integration automatically applies the documented
+scale factors to active/apparent power, grid power, installed capacity, and
+the cumulative charge counter. On older pulse models these factors are not
+advertised by the VARTA table, so an unavailable factor is treated as zero.
 
 Positive/negative power direction is preserved as documented by VARTA. Check
 the physical system's readings before using a value in an automation.
@@ -59,6 +66,11 @@ Keep the existing YAML integration active initially. Add this integration
 alongside it, compare values over at least one complete charge/discharge cycle,
 then migrate dashboards and automations. Remove the old YAML configuration only
 after the new sensors are verified.
+
+`Total charged energy` supersedes a power-derived charging counter with the
+storage system's own cumulative AC-to-DC counter. VARTA's public table does not
+provide a corresponding cumulative discharge counter; keep an existing
+power-derived discharge total until you intentionally replace it.
 
 ## Technical documentation
 

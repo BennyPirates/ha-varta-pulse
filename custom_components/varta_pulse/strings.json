@@ -26,6 +26,7 @@
       "apparent_battery_power": {"name": "Apparent battery power"},
       "state_of_charge": {"name": "State of charge"},
       "installed_capacity": {"name": "Installed capacity"},
+      "total_charged_energy": {"name": "Total charged energy"},
       "grid_power": {"name": "Grid power"},
       "grid_frequency": {"name": "Grid frequency"},
       "available_charging_power": {"name": "Available charging power"},
