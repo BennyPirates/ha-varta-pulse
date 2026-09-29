@@ -1,4 +1,4 @@
-"""Strictly read-only Modbus TCP client for VARTA pulse."""
+"""Rate-limited Modbus TCP client for VARTA pulse."""
 
 from __future__ import annotations
 
@@ -9,7 +9,13 @@ from collections.abc import Callable
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 
-from .const import MIN_REQUEST_INTERVAL, READ_BLOCKS, REGISTERS, SCALE_FACTOR_BLOCK
+from .const import (
+    DISCHARGE_LIMIT_REGISTER,
+    MIN_REQUEST_INTERVAL,
+    READ_BLOCKS,
+    REGISTERS,
+    SCALE_FACTOR_BLOCK,
+)
 from .registers import VartaValue, apply_scale_factor, decode, register_width, signed16
 
 
@@ -18,7 +24,11 @@ class VartaPulseError(Exception):
 
 
 class VartaPulseClient:
-    """Synchronous FC03-only client with VARTA's request-rate limit."""
+    """Synchronous client with VARTA's request-rate limit.
+
+    The optional discharge hold uses the community-tested FC06 register 1074.
+    No other register can be written by this client.
+    """
 
     def __init__(
         self,
@@ -31,7 +41,15 @@ class VartaPulseClient:
         self._client = client_factory(host, port=port, timeout=timeout, retries=1)
         self._unit_id = unit_id
         self._lock = threading.Lock()
+        self._control_lock = threading.Lock()
         self._last_request = 0.0
+        self._discharge_hold = False
+        self._original_discharge_limit: int | None = None
+
+    @property
+    def discharge_hold(self) -> bool:
+        """Whether this client is maintaining a discharge hold."""
+        return self._discharge_hold
 
     def close(self) -> None:
         """Close the TCP client."""
@@ -78,8 +96,56 @@ class VartaPulseClient:
                 decoded[register.key] = scaled
         return decoded
 
+    def set_discharge_hold(self, enabled: bool) -> None:
+        """Opt into, or release, the device's temporary discharge limit."""
+        with self._control_lock:
+            if enabled:
+                if self._discharge_hold:
+                    return
+                original = self._read_holding(DISCHARGE_LIMIT_REGISTER, 1)[0]
+                if original == 0:
+                    raise VartaPulseError(
+                        "Discharge limit is already zero; another controller may own it"
+                    )
+                self._write_discharge_limit(0)
+                if self._read_holding(DISCHARGE_LIMIT_REGISTER, 1)[0] != 0:
+                    raise VartaPulseError("VARTA did not accept the discharge hold")
+                self._original_discharge_limit = original
+                self._discharge_hold = True
+            elif self._discharge_hold:
+                assert self._original_discharge_limit is not None
+                self._write_discharge_limit(self._original_discharge_limit)
+                self._discharge_hold = False
+                self._original_discharge_limit = None
+
+    def refresh_discharge_hold(self) -> None:
+        """Renew the hold before VARTA's 120-second watchdog expires."""
+        with self._control_lock:
+            if self._discharge_hold:
+                self._write_discharge_limit(0)
+
+    def _write_discharge_limit(self, value: int) -> None:
+        """FC06 write restricted to the discharge-limit register."""
+        with self._lock:
+            delay = MIN_REQUEST_INTERVAL - (time.monotonic() - self._last_request)
+            if delay > 0:
+                time.sleep(delay)
+            try:
+                if not self._client.connected and not self._client.connect():
+                    raise VartaPulseError("Could not connect to VARTA pulse")
+                response = self._client.write_register(
+                    address=DISCHARGE_LIMIT_REGISTER,
+                    value=value,
+                    device_id=self._unit_id,
+                )
+                self._last_request = time.monotonic()
+            except (ModbusException, OSError) as error:
+                raise VartaPulseError(str(error)) from error
+            if response.isError():
+                raise VartaPulseError(str(response))
+
     def _read_holding(self, address: int, count: int) -> list[int]:
-        """Use FC03 exclusively. This class deliberately has no write method."""
+        """Read one holding-register block using FC03."""
         with self._lock:
             delay = MIN_REQUEST_INTERVAL - (time.monotonic() - self._last_request)
             if delay > 0:

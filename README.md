@@ -1,19 +1,35 @@
 # VARTA pulse for Home Assistant
 
-Local, strictly read-only Home Assistant custom integration for VARTA pulse
-energy storage systems via Modbus TCP.
+Local Home Assistant custom integration for VARTA pulse energy storage systems
+via Modbus TCP. Monitoring is enabled by default; discharge hold is opt-in.
 
-## Safety boundary
+## Control boundary
 
-- Only Modbus Function Code 03 (read holding registers) is implemented.
-- No service, entity, method, dependency, or configuration path writes a
-  Modbus register.
-- It reads only VARTA's publicly documented register table.
+- Monitoring uses Modbus Function Code 03 (read holding registers).
+- The optional **Discharge hold** switch uses Function Code 06 only for
+  register 1074. This register is used by
+  [evcc's VARTA template](https://github.com/evcc-io/evcc/blob/master/templates/definition/meter/varta.yaml)
+  for pulse and pulse neo, but is absent from VARTA's public Modbus table.
+- The switch is disabled in Home Assistant's entity registry by default. No
+  write occurs unless you enable the entity and turn it on.
 - Requests are serialized and separated by at least 1.05 seconds, in line
   with VARTA's published request-rate guidance.
 
-This integration is intentionally a monitoring integration. Battery dispatch,
-grid charging, reserve policies, and inverter control are **not** implemented.
+The switch stores the existing raw discharge limit, writes zero, and renews
+the hold after each 30-second sensor refresh. Turning it off restores the
+saved limit. If Home Assistant stops or loses contact, the VARTA watchdog
+normally releases the hold after about 120 seconds. Do not use another
+controller to write the same register at the same time.
+
+The switch prevents discharge; it does not fill the battery from the grid.
+Forced grid charging has not been demonstrated through this Modbus interface.
+The switch is experimental because register 1074 is not publicly documented
+by VARTA. Verify its effect on your own device before automating it.
+
+To use it, open the VARTA pulse device in Home Assistant, enable the disabled
+**Discharge hold** entity, and test it while the battery is discharging. Your
+automation can then turn it on during cheap Tibber periods and turn it off
+before expensive hours. A battery that starts the night empty remains empty.
 
 ## Read-only diagnostic probe
 
@@ -29,6 +45,12 @@ The probe uses only FC03 reads, keeps the documented Unit ID 255 default, and
 writes JSON/CSV results below the ignored `results/` directory. Candidate
 registers are reported as raw values only; the probe assigns them no semantic
 meaning or write capability.
+
+For a read-only compatibility check of the community control candidates:
+
+```shell
+python varta_pulse_probe.py varta.local --control-candidate-scan
+```
 
 ## What it exposes
 

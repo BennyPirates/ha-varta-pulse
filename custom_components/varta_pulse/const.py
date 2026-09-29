@@ -11,8 +11,9 @@ DEFAULT_UNIT_ID = 255
 DEFAULT_SCAN_INTERVAL = 30
 DEFAULT_TIMEOUT = 5.0
 MIN_REQUEST_INTERVAL = 1.05
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "switch"]
 CONF_UNIT_ID = "unit_id"
+DISCHARGE_LIMIT_REGISTER = 1074
 
 
 @dataclass(frozen=True, slots=True)

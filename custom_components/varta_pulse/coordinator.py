@@ -29,6 +29,13 @@ class VartaPulseCoordinator(DataUpdateCoordinator[dict[str, VartaValue]]):
 
     async def _async_update_data(self) -> dict[str, VartaValue]:
         try:
-            return await self.hass.async_add_executor_job(self.client.read_all)
+            data = await self.hass.async_add_executor_job(self.client.read_all)
+            await self.hass.async_add_executor_job(self.client.refresh_discharge_hold)
+            return data
         except VartaPulseError as error:
             raise UpdateFailed(str(error)) from error
+
+    async def async_set_discharge_hold(self, enabled: bool) -> None:
+        """Apply an explicit user-requested discharge hold."""
+        await self.hass.async_add_executor_job(self.client.set_discharge_hold, enabled)
+        self.async_update_listeners()

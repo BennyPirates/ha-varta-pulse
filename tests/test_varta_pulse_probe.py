@@ -5,6 +5,7 @@ import unittest
 from src.varta_pulse_probe import (
     REGISTERS,
     candidate_registers,
+    control_candidate_registers,
     decode,
     plausible,
     signed16,
@@ -37,3 +38,8 @@ class VartaPulseProbeTests(unittest.TestCase):
         self.assertIn(1088, {candidate.address for candidate in candidates})
         self.assertTrue(all(not candidate.documented for candidate in candidates))
         self.assertNotIn(2066, {candidate.address for candidate in candidates})
+
+    def test_control_candidates_remain_unverified(self) -> None:
+        candidates = control_candidate_registers()
+        self.assertEqual([item.address for item in candidates], [1073, 1074, 1075])
+        self.assertTrue(all(not item.documented for item in candidates))

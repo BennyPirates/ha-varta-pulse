@@ -105,6 +105,20 @@ def candidate_registers() -> list[Register]:
     ]
 
 
+def control_candidate_registers() -> list[Register]:
+    """Return unverified control registers for a read-only compatibility check.
+
+    evcc uses these addresses on some VARTA systems. A successful FC03 read
+    does not establish that this particular device accepts writes to them.
+    """
+    return [
+        Register(
+            address, "Undocumented control candidate", "raw_uint16", documented=False
+        )
+        for address in (1073, 1074, 1075)
+    ]
+
+
 STATE_NAMES = {
     0: "busy",
     1: "ready",
@@ -293,6 +307,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Read only small, undocumented ranges near public VARTA registers.",
     )
+    parser.add_argument(
+        "--control-candidate-scan",
+        action="store_true",
+        help="Read only the unverified evcc control candidates 1073-1075.",
+    )
     return parser.parse_args()
 
 
@@ -308,8 +327,12 @@ def main() -> int:
         offset, notes = choose_offset(client)
         for note in notes:
             print(note)
-        registers = [*REGISTERS]
-        if args.candidate_scan:
+        registers = (
+            control_candidate_registers()
+            if args.control_candidate_scan
+            else [*REGISTERS]
+        )
+        if args.candidate_scan and not args.control_candidate_scan:
             registers.extend(candidate_registers())
         results = [probe_register(client, register, offset) for register in registers]
     finally:
