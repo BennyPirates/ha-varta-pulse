@@ -1,12 +1,16 @@
 """VARTA pulse integration setup."""
 
+import logging
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
 
-from .api import VartaPulseClient
+from .api import VartaPulseClient, VartaPulseError
 from .const import CONF_UNIT_ID, DEFAULT_TIMEOUT, PLATFORMS
 from .coordinator import VartaPulseCoordinator
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -28,5 +32,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload the VARTA pulse config entry."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
-        entry.runtime_data.client.close()
+        client = entry.runtime_data.client
+        try:
+            await hass.async_add_executor_job(client.set_discharge_hold, False)
+        except VartaPulseError:
+            # The device watchdog releases the hold if HA cannot reach it.
+            _LOGGER.warning("Could not release VARTA discharge hold during unload")
+        finally:
+            await hass.async_add_executor_job(client.close)
     return unloaded
